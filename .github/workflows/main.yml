@@ -41,7 +41,7 @@ jobs:
         
         # 4. Generate Predictions
         # Note: Ensure 'fixed_random_forest_model.joblib' exists in repo or use one of the generated models above
-        python -m src.predict --model_path fixed_random_forest_model.joblib --csv_path "./data/Hotel_Reservations.csv" --output_path preds.csv
+        python -m src.predict --model_path baseline_rf.joblib --csv_path "./data/Hotel_Reservations.csv" --output_path preds.csv
 
     # 5. Verify model saving
     - name: Verify model saving
