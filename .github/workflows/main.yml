@@ -1,0 +1,68 @@
+name: ML Training and Prediction Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Allows you to run this manually from the Actions tab
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Check out the code
+    - uses: actions/checkout@v4
+
+    # 2. Set up Python
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+
+    # 3. Install Dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    # 4. Run pipeline end-to-end
+    - name: Run pipeline end-to-end
+      run: |
+        # 1. Run default main
+        python -m src.main
+        
+        # 2. Train Baseline Model
+        python -m src.main --data_path "./data/Hotel_Reservations.csv" --model_out baseline_rf.joblib
+        
+        # 3. Train Tuned Model
+        python -m src.main --data_path "./data/Hotel_Reservations.csv" --model_out tuned_rf.joblib --tune
+        
+        # 4. Generate Predictions
+        # Note: Ensure 'fixed_random_forest_model.joblib' exists in repo or use one of the generated models above
+        python -m src.predict --model_path fixed_random_forest_model.joblib --csv_path "./data/Hotel_Reservations.csv" --output_path preds.csv
+
+    # 5. Verify model saving
+    - name: Verify model saving
+      run: |
+        echo "Listing generated files..."
+        ls -lh *.joblib preds.csv
+        
+        # Check if specific output files exist
+        if [ -f "baseline_rf.joblib" ] && [ -f "tuned_rf.joblib" ] && [ -f "preds.csv" ]; then
+          echo "Verification Successful: All models and predictions were saved."
+        else
+          echo "Verification Failed: Missing expected output files."
+          exit 1
+        fi
+
+    # 6. Upload Artifacts (Optional but recommended)
+    # This saves the models and csv files so you can download them from GitHub
+    - name: Upload Models and Predictions
+      uses: actions/upload-artifact@v4
+      with:
+        name: ml-artifacts
+        path: |
+          *.joblib
+          preds.csv
